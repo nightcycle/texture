@@ -1,12 +1,6 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-
 local packages = script.Parent
 
-local Fusion = require(packages:WaitForChild("coldfusion"))
 local Isotope = require(packages:WaitForChild("isotope"))
-local Signal = require(packages:WaitForChild("signal"))
-local Dummy = ReplicatedStorage:WaitForChild("Dummy")
 
 local Texture = {}
 
@@ -22,6 +16,7 @@ function Texture:Apply(inst)
 	inst.Material = self.Material:Get()
 	inst.Reflectance = self.Reflectance:Get()
 	inst.Transparency = self.Transparency:Get()
+	inst.MaterialVariant = self.MaterialVariant:Get()
 	if self.Map.Color and self.Map.Color:Get() then
 		local surfaceAppearance = inst:FindFirstChildOfClass("SurfaceAppearance") or Instance.new("SurfaceAppearance", inst)
 		surfaceAppearance.ColorMap = self.Map.Color:Get()
@@ -34,26 +29,29 @@ end
 function Texture.new(config)
 	local self = setmetatable(Isotope.new(config), Texture)
 
-	self.Color = config.Color or Fusion.Value(Color3.fromHSV(0,0,1))
-	self.Material = config.Material or Fusion.Value(Enum.Material.SmoothPlastic)
+	self.Color = self:Import(config.Color, Color3.new(0,0,0))
+	self.Material = self:Import(config.Material, Enum.Material.SmoothPlastic)
+	self.MaterialVariant = self:Import(config.MaterialVariant, "")
+
 	self.Map = config.Map or {
-		Color = config.ColorMap or Fusion.Value(nil),
-		Metalness = config.MetalnessMap or Fusion.Value(nil),
-		Normal = config.NormalMap or Fusion.Value(nil),
-		Roughness = config.RoughnessMap or Fusion.Value(nil),
+		Color = self:Import(config.ColorMap),
+		Metalness = self:Import(config.MetalnessMap),
+		Normal = self:Import(config.NormalMap),
+		Roughness = self:Import(config.RoughnessMap),
 	}
 
-	self.Reflectance = config.Reflectance or Fusion.Value(0)
-	self.Transparency = config.Transparency or Fusion.Value(0)
-	self.Code = Fusion.Computed(
+	self.Reflectance = self:Import(config.Reflectance, 0)
+	self.Transparency = self:Import(config.Transparency, 0)
+	self.Code = self._Fuse.Computed(
 		self.Color,
 		self.Material,
+		self.MaterialVariant,
 		self.Reflectance,
 		self.Transparency,
-		function(col, mat, ref, trans)
+		function(col, mat, matVar, ref, trans)
 			-- local rgb = col:ToRGB()
 			local colString = tostring(col)
-			local matString = tostring(mat.Name)
+			local matString = tostring(mat.Name)..tostring(matVar)
 			local refString = tostring(ref)
 			local tranString = tostring(trans)
 			return colString.."_"..matString.."_"..refString.."_"..tranString
